@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jurassic Park Monitor - Reactivo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212; /* Fondo oscuro estilo "centro de control" */
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #4CAF50; }
+        #status { text-align: center; margin-bottom: 20px; font-weight: bold; }
+        .connected { color: #4CAF50; }
+        .disconnected { color: #f44336; }
+
+        /* Contenedor principal tipo parrilla */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Tarjetas para cada gráfica */
+        .chart-card {
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            border: 1px solid #333;
+        }
+        .chart-title {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #81c784;
+        }
+
+        /* Sección de Alertas */
+        #alerts-section {
+            max-width: 1400px;
+            margin: 20px auto;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 10px;
+        }
+        .alert-msg {
+            background-color: rgba(244, 67, 54, 0.2);
+            border-left: 4px solid #f44336;
+            padding: 10px;
+            margin-bottom: 5px;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <h1>🦖 Centro de Control Jurassic Park</h1>
+    <div id="status" class="disconnected">⚪ Estado: Desconectado</div>
+
+    <div id="alerts-section">
+        <div><strong>Panel de Alertas:</strong></div>
+        <div id="alerts-container"></div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="chart-card">
+            <div class="chart-title">❤️ T-REX-01: Ritmo Cardíaco (bpm)</div>
+            <canvas id="chartTrexHeart"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">🌡️ TRICE-01: Temperatura (°C)</div>
+            <canvas id="chartTriceTemp"></canvas>
+        </div>
+
+         <div class="chart-card">
+            <div class="chart-title">🏃 RAPTOR-01: Actividad (0/1)</div>
+            <canvas id="chartRaptorMove"></canvas>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Configuración de Websocket ---
+        const wsUrl = `ws://${window.location.host}/ws/stream`;
+        let ws = new WebSocket(wsUrl);
+        const statusDiv = document.getElementById("status");
+        const alertsContainer = document.getElementById("alerts-container");
+
+        ws.onopen = () => {
+            statusDiv.innerText = "🟢 Estado: Conectado al Sistema Reactivo";
+            statusDiv.className = "connected";
+        };
+        ws.onclose = () => {
+            statusDiv.innerText = "🔴 Estado: Desconectado";
+            statusDiv.className = "disconnected";
+        };
+
+        // --- Configuración Inicial de Chart.js ---
+        // Función auxiliar para crear gráficas fácilmente
+        function createLineChart(canvasId, label, color, min, max) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [], // Los timestamps irán aquí
+                    datasets: [{
+                        label: label,
+                        data: [], // Los valores irán aquí
+                        borderColor: color,
+                        backgroundColor: color + '33', // Color con transparencia
+                        borderWidth: 2,
+                        tension: 0.3, // Suavizado de línea
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: { duration: 400 }, // Animación suave al actualizar
+                    scales: {
+                        y: { min: min, max: max, grid: { color: '#333' } },
+                        x: { display: false } // Ocultamos etiquetas X para ahorrar espacio
+                    },
+                    plugins: { legend: { display: false } } // Ocultamos leyenda por simplicidad
+                }
+            });
+        }
+
+        // Inicializamos las 3 gráficas vacías
+        const trexChart = createLineChart('chartTrexHeart', 'BPM', '#f44336', 40, 140);
+        const triceChart = createLineChart('chartTriceTemp', '°C', '#FFC107', 35, 42);
+        // Gráfica de movimiento escalonada
+        const raptorChart = createLineChart('chartRaptorMove', 'Actividad', '#2196F3', 0, 1.5);
+        raptorChart.options.elements.line.tension = 0; // Líneas rectas para 0/1
+        raptorChart.update();
+
+
+        // --- LÓGICA PRINCIPAL: Procesar Datos del Websocket ---
+        ws.onmessage = function(event) {
+            const message = JSON.parse(event.data);
+
+            // 1. Manejar Alertas
+            if (message.alerts && message.alerts.length > 0) {
+                message.alerts.forEach(alert => {
+                    const div = document.createElement("div");
+                    div.className = "alert-msg";
+                    // Formateamos la hora de la alerta
+                    const time = new Date(alert.timestamp).toLocaleTimeString();
+                    div.innerHTML = `<strong>[${time}]</strong> ${alert.message}`;
+                    alertsContainer.prepend(div);
+                    // Limpiamos alertas viejas si hay más de 5
+                    if (alertsContainer.children.length > 5) alertsContainer.lastChild.remove();
+                });
+            }
+
+            // 2. Manejar Datos de Sensores
+            if (message.data && message.data.length > 0) {
+                // Iteramos sobre el lote de datos recibido
+                message.data.forEach(sensorDatum => {
+                    // Obtenemos la hora legible para el eje X
+                    const timeLabel = new Date(sensorDatum.timestamp).toLocaleTimeString();
+
+                    // "Enrutamos" el dato a la gráfica correcta
+                    if (sensorDatum.sensor_id === 'T-REX-01' && sensorDatum.sensor_type === 'cardiaco') {
+                        addDataToChart(trexChart, timeLabel, sensorDatum.value);
+                    } else if (sensorDatum.sensor_id === 'TRICE-01' && sensorDatum.sensor_type === 'temperatura') {
+                        addDataToChart(triceChart, timeLabel, sensorDatum.value);
+                    } else if (sensorDatum.sensor_id === 'RAPTOR-01' && sensorDatum.sensor_type === 'movimiento') {
+                         addDataToChart(raptorChart, timeLabel, sensorDatum.value);
+                    }
+                });
+
+                // Actualizamos las gráficas visualmente una vez procesado el lote
+                trexChart.update();
+                triceChart.update();
+                raptorChart.update();
+            }
+        };
+
+        // Función para añadir datos y mantener la ventana móvil (Backpressure visual)
+        // Mantenemos solo los últimos 30 puntos para que el navegador no se cuelgue.
+        const MAX_DATA_POINTS = 30;
+
+        function addDataToChart(chart, label, data) {
+            chart.data.labels.push(label);
+            chart.data.datasets.forEach((dataset) => {
+                dataset.data.push(data);
+            });
+
+            // Si hay demasiados puntos, quitamos el más viejo (ventana deslizante)
+            if (chart.data.labels.length > MAX_DATA_POINTS) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach((dataset) => {
+                    dataset.data.shift();
+                });
+            }
+        }
+    </script>
+</body>
+</html>

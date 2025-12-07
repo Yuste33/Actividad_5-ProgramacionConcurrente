@@ -1,4 +1,10 @@
-fastapi
-uvicorn
-rx
-asyncio
+fastapi>=0.95.0
+uvicorn>=0.22.0
+rx>=3.2.0
+pydantic>=1.10.0
+aiologger>=0.7.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+websockets>=11.0
+jinja2
+psutil

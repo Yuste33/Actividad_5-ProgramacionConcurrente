@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jurassic Park System - Acceso</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            background-color: #1e1e1e;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        p {
+            color: #aaa;
+            margin-bottom: 30px;
+        }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .btn {
+            display: block;
+            padding: 15px 20px;
+            text-decoration: none;
+            color: #fff;
+            background-color: #333;
+            border: 1px solid #4CAF50;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+        .btn:hover {
+            background-color: #4CAF50;
+            color: #000;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+        .btn-secondary {
+            border-color: #2196F3;
+        }
+        .btn-secondary:hover {
+            background-color: #2196F3;
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>JURASSIC SYSTEM</h1>
+        <p>Seleccione un módulo de acceso</p>
+
+        <div class="btn-group">
+            <a href="/dashboard" class="btn">
+                Monitor en Tiempo Real
+            </a>
+
+            <a href="/docs" class="btn btn-secondary">
+                Documentación API (Swagger)
+            </a>
+
+            <a href="/api/status" class="btn" style="border-color: #9e9e9e;">
+                API: Estado del Sistema
+            </a>
+
+            <a href="/api/metrics" class="btn" style="border-color: #9e9e9e;">
+                API: Métricas
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

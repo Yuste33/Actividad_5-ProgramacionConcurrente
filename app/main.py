@@ -1,16 +1,34 @@
-# This is a sample Python script.
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+from contextlib import asynccontextmanager
+from fastapi.responses import HTMLResponse
+import os
+from app.api import websockets, routes
+from app.services.processor import processor
 
-# Press Mayús+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    processor.start()
+    yield
+    processor.stop()
 
+app = FastAPI(
+    title="Jurassic Park Monitor",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
+app.include_router(routes.router, prefix="/api")
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+app.include_router(websockets.router, prefix="/ws")
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def get_dashboard(request: Request):
+    return templates.TemplateResponse("dashboard.html", {"request": request})

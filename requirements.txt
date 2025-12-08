@@ -8,3 +8,5 @@ matplotlib>=3.7.0
 websockets>=11.0
 jinja2
 psutil
+pytest
+httpx

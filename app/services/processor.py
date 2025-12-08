@@ -17,18 +17,14 @@ class JurassicProcessor:
         loop = asyncio.get_running_loop()
         scheduler = AsyncIOScheduler(loop)
 
-        # Para depurar: Imprimir confirmación
         print("🦖 MOTOR REACTIVO ARRANCADO EN EL BUCLE CORRECTO")
 
-        # 2. Creamos los flujos simulados
         trex_heart = create_heart_stream("T-REX-01", interval_sec=0.5)
         raptor_move = create_movement_stream("RAPTOR-01", interval_sec=1.0)
         trice_temp = create_temp_stream("TRICE-01", interval_sec=2.0)
 
-        # 3. MERGE
         combined_stream = rx.merge(trex_heart, raptor_move, trice_temp)
 
-        # 4. BACKPRESSURE y PROCESAMIENTO
         self.disposable = combined_stream.pipe(
             ops.buffer_with_time_or_count(timespan=2.0, count=10),
             ops.filter(lambda batch: len(batch) > 0),
@@ -45,7 +41,6 @@ class JurassicProcessor:
             print("Sistema de Monitorización: DETENIDO")
 
     def _analyze_batch(self, batch):
-        # ... (El resto del código se queda igual) ...
         alerts = []
         clean_data = []
 

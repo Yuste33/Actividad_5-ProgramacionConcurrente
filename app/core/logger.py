@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 
-# 1. Configurar carpetas y archivos
+# Configurar carpetas y archivos
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 LOG_FILE = os.path.join(LOG_DIR, "registro_jurassic.txt")

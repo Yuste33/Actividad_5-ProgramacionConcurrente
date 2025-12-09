@@ -27,7 +27,7 @@ async def get_metrics():
     import psutil
 
     return SystemMetrics(
-        total_processed=request_count * 10,  # Simulado
-        active_connections=1,  # Simulado
+        total_processed=request_count * 10,
+        active_connections=1,
         cpu_usage=psutil.cpu_percent()
     )

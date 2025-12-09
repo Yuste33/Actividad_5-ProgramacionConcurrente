@@ -8,9 +8,9 @@ from app.services.processor import processor
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    processor.start()
+    await processor.start()
     yield
-    processor.stop()
+    await processor.stop()
 
 app = FastAPI(
     title="Jurassic Park Monitor",

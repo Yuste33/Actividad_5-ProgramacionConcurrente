@@ -5,6 +5,7 @@ from rx.subject import Subject
 from rx.scheduler.eventloop import AsyncIOScheduler
 from app.services.stream_factory import create_movement_stream, create_temp_stream, create_heart_stream
 from app.models.schemas import Alert
+from app.core.logger import logger
 
 
 class JurassicProcessor:
@@ -12,14 +13,13 @@ class JurassicProcessor:
         self.output_subject = Subject()
         self.disposable = None
 
-    def start(self):
-
+    async def start(self):
         loop = asyncio.get_running_loop()
         scheduler = AsyncIOScheduler(loop)
 
-        print("🦖 MOTOR REACTIVO ARRANCADO EN EL BUCLE CORRECTO")
+        await logger.info("🦖 MOTOR REACTIVO: Iniciando sistema de monitorización...")
 
-        trex_heart = create_heart_stream("T-REX-01", interval_sec=0.5)
+        trex_heart = create_heart_stream("T-REX-01", interval_sec=1.0)
         raptor_move = create_movement_stream("RAPTOR-01", interval_sec=1.0)
         trice_temp = create_temp_stream("TRICE-01", interval_sec=2.0)
 
@@ -31,33 +31,36 @@ class JurassicProcessor:
             ops.map(self._analyze_batch)
         ).subscribe(
             on_next=lambda data: self.output_subject.on_next(data),
-            on_error=lambda e: print(f"Error en flujo: {e}"),
-            scheduler=scheduler  # Usamos el scheduler sincronizado
+            on_error=lambda e: loop.create_task(logger.error(f" Error en flujo: {e}")),
+            scheduler=scheduler
         )
 
-    def stop(self):
+    # 4. CONVERTIMOS A ASYNC
+    async def stop(self):
         if self.disposable:
             self.disposable.dispose()
-            print("Sistema de Monitorización: DETENIDO")
+            await logger.info("🛑 Sistema de Monitorización: DETENIDO")
 
     def _analyze_batch(self, batch):
         alerts = []
         clean_data = []
 
+        loop = asyncio.get_running_loop()
+
         for data in batch:
             clean_data.append(data.dict())
 
-            # Lógica de Alerta
-            if data.sensor_type == "cardiaco" and data.value > 110:
+            if data.sensor_id == "T-REX-01" and data.value > 125:
+                # logs de alerta
+                loop.create_task(logger.warning(f"!! ALERTA GENERADA: Taquicardia en T-REX ({data.value})"))
+
                 alert = Alert(
                     sensor_id=data.sensor_id,
-                    message=f"¡PELIGRO! Ritmo cardiaco crítico: {data.value}",
+                    message=f"ALERTA: Taquicardia detectada: {data.value}",
                     level="CRITICAL",
                     value_triggered=data.value
                 )
                 alerts.append(alert.dict())
-
-        print(f"Lote procesado: {len(clean_data)} eventos")
 
         return {
             "type": "batch_update",
@@ -66,5 +69,4 @@ class JurassicProcessor:
         }
 
 
-# Instancia global
 processor = JurassicProcessor()

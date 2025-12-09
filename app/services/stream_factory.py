@@ -28,7 +28,7 @@ def create_heart_stream(sensor_id: str, interval_sec: float = 1.0):
         ops.map(lambda _: SensorData(
             sensor_type="cardiaco",
             sensor_id=sensor_id,
-            value=int(random.gauss(80, 15)),
+            value=int(random.uniform(60, 145)),
             unit="bpm"
         ))
     )
